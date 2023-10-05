@@ -12,7 +12,7 @@ class sim_objects ():
         self.client = 0
         self.sim = 0
         self.file = 0
-        self.random_positions = []
+        self.random_increments = []
         self.executed = False
 
 sim_obj = sim_objects()
@@ -94,7 +94,7 @@ def rand_gen():
     for i in range(9):
         n = rn(-10, 10) * math.pi / 180
         randomlist.append(n)
-    sim_obj.random_positions.append(randomlist)
+    sim_obj.random_increments.append(randomlist)
 
 #Function to get perceptions-----------base acceleration is missing
 def get_joints_preceptions():
@@ -143,8 +143,13 @@ def main():
     load_quad_class()
     rand_gen()
     get_joints_preceptions()
-    for i in range(len(sim_obj.random_positions)):
-        sim_obj.sim.setJointTargetPosition(handler.__dict__.values()[i], sim_obj.random_positions[i])
+    #Execute every joint action
+    for i in range(len(sim_obj.random_increments[-1])):
+        sim_obj.sim.setJointTargetPosition(handler.__dict__.values()[i], (sim_obj.random_increments[-1][i]+perception.prev_j_positions[-1][i]))
+        #4 steps let the joints get to their target position with the less velocity possible (1 step = 0.05s)
+        sim_obj.client.step()
+        sim_obj.client.step()
+        sim_obj.client.step()
         sim_obj.client.step()
     sim_obj.executed = True
     get_joints_preceptions()
