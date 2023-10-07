@@ -122,7 +122,6 @@ def get_joints_preceptions():
         #Linear velocity of the joint
         l_veloc = sim_obj.sim.getJointVelocity(i)
         l_velocities.append(l_veloc)
-    print(positions)
     if  not sim_obj.executed:
         print("Getting prev perceptions")
         perception.prev_j_positions.append(positions)
@@ -148,51 +147,35 @@ def export():
     pickle.dump(perception, sim_obj.file)
     sim_obj.file.close()
 
-#Main function for one execution and multiple steps
+#Main function for multiple executions and multiple steps
 def main():
-    sim_obj.sim.stopSimulation()
-    sim_obj.sequencies = 2
-    print("Numero de secuencias: ",sim_obj.sequencies)
-    sim_obj.seq_steps = 5
-    print("Steps por secuencia: ",sim_obj.seq_steps)
-    k = 0
     print("main function")
-    sim_obj.sim.startSimulation()
-    load_quad_class()
-    for j in range(sim_obj.seq_steps):
-        print("----------- Secuencia: ", k)
-        print("----------- Paso: ", j)
-        rand_gen()
-        get_joints_preceptions()
-        #Execute every joint action
-        print("Executing actions")
-        print(perception.prev_j_positions)
-        #print(perception.prev_j_positions[-1])
-        for i in range(len(sim_obj.random_increments[-1])):
-            next_pos = sim_obj.random_increments[-1][i]+perception.prev_j_positions[-1][i]
-            sim_obj.sim.setJointTargetPosition(sim_obj.handler_ids[i], next_pos)
-            sim_obj.client.step()
-            sim_obj.client.step()
-            sim_obj.client.step()
-            sim_obj.client.step()
-        sim_obj.executed = True
-        get_joints_preceptions()
-        sim_obj.executed = False
+    for k in range(sim_obj.sequencies):
+        print(f"{k} sequence has started")
         print("")
-    print("Simulation has finished")
-    sim_obj.sim.stopSimulation()
-    #export()
+        #sim_obj.sim.startSimulation()
+        load_quad_class()
+        for j in range(sim_obj.seq_steps):
+            print("----------- Secuencia: ", k)
+            print("----------- Paso: ", j)
+            rand_gen()
+            get_joints_preceptions()
+            #Execute every joint action
+            print("Executing actions")
+            for i in range(len(sim_obj.random_increments[-1])):
+                sim_obj.sim.setJointTargetPosition(sim_obj.handler_ids[i], (sim_obj.random_increments[-1][i]+perception.prev_j_positions[-1][i]))
+                sim_obj.client.step()
+                sim_obj.client.step()
+                sim_obj.client.step()
+                sim_obj.client.step()
+            sim_obj.executed = True
+            get_joints_preceptions()
+            sim_obj.executed = False
+            print("")
+        print(f"{k} simulation has finished")
+        print("")
+        sim_obj.sim.stopSimulation()
+    export()
 
 if __name__ == "__main__":
     main()
-    print("")
-    data = 0
-    num_exec = []
-    for i in perception.__dict__.keys():
-        #print(i)
-        for k in perception.__dict__[i]:
-            #print(k)
-            #print("")
-            data = data + len(k)
-        num_exec.append(len(perception.__dict__[i]))
-    print(f"Cantidad total de datos: {data}")
