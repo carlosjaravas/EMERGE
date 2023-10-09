@@ -2,7 +2,7 @@ import os
 import math
 import pickle
 from zmqRemoteApi import RemoteAPIClient
-from random import randint as rn
+from random import uniform as ru
 
 #Class for simulation object
 class sim_objects ():
@@ -74,7 +74,7 @@ def load_quad_class():
 def rand_gen():
     randomlist = []
     for i in range(len(sim_obj.handler_ids)-1):
-        n = rn(-10, 10) * math.pi / 180
+        n = ru(-10, 10) * math.pi / 180
         randomlist.append(n)
     sim_obj.random_increments.append(randomlist)
 
