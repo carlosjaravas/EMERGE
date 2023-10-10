@@ -12,13 +12,23 @@ class sim_objects ():
         self.client = RemoteAPIClient()
         self.sim = self.client.getObject('sim')
         self.file = 0
-        self.executed = False
         self.joint_handler_ids = []
         self.num_joints = 0
         self.obj_handler_ids = []
-        self.sequencies = 1
-        self.seq_steps = 2
+        self.sequencies = 2
+        self.seq_steps = 3
         self.training_data = []
+        
+        #Stores initial perceptions measured in the load function
+        self.initial_j_positions = []
+        self.initial_j_velocities = []
+        self.initial_j_forces = []
+        self.initial_base_pos_x = 0
+        self.initial_base_pos_y = 0
+        self.initial_base_pos_z = 0
+        self.initial_base_ori_alpha = 0
+        self.initial_base_ori_beta = 0
+        self.initial_base_ori_gamma = 0
         
 sim_obj = sim_objects()
 
@@ -45,22 +55,6 @@ class obj_handlers_class ():
         self.base = 0
 
 obj_handler = obj_handlers_class()
-
-#Funtion to randomize de initial position
-def init_position():
-    start_pos = ri(0,1)
-    #Fixes the last joints position to 0 so they wont move
-    for i in sim_obj.obj_handler_ids[:-1]:
-        sim_obj.sim.setJointTargetPosition(i, 0)
-    if start_pos == 0:
-        #Set all the joints to their position
-        for i in sim_obj.joint_handler_ids:
-            sim_obj.sim.setJointTargetPosition(i, 0)
-        #After setting all the joints it moves    
-        for i in range(20):
-            sim_obj.client.step()
-    else:
-        sim_obj.client.step()
 
 # Function that load the robot in the scene at the beggining of each evaluation.
 def load_quad_class():
@@ -99,8 +93,44 @@ def load_quad_class():
 
     sim_obj.obj_handler_ids = list(obj_handler.__dict__.values())
 
-
     sim_obj.sim.startSimulation()
+
+def init_position():
+    start_pos = ri(0,1)
+    #Fixes the last joints position to 0 so they wont move
+    for i in sim_obj.obj_handler_ids[:-1]:
+        sim_obj.sim.setJointTargetPosition(i, 0)
+    if start_pos == 0:
+        #Set all the joints to their position
+        for i in sim_obj.joint_handler_ids:
+            sim_obj.sim.setJointTargetPosition(i, 0)
+        #After setting all the joints it moves    
+        for i in range(20):
+            sim_obj.client.step()
+    else:
+        sim_obj.client.step()
+    
+    #Get initial perceptions
+    base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.base, sim_obj.sim.handle_world)
+    base_alpha, base_beta, base_gamma = sim_obj.sim.getObjectOrientation(obj_handler.base, sim_obj.sim.handle_world)
+    sim_obj.initial_base_pos_x = base_x
+    sim_obj.initial_base_pos_x = base_y
+    sim_obj.initial_base_pos_x = base_z
+    sim_obj.initial_base_ori_alpha = base_alpha
+    sim_obj.initial_base_ori_beta = base_beta
+    sim_obj.initial_base_ori_gamma = base_gamma
+        
+    #Joint perceptions
+    for i in sim_obj.joint_handler_ids:
+        #Angular/linear position of the joint
+        pos = sim_obj.sim.getJointPosition(i)
+        #Torque/force being aplied by the joint
+        force = sim_obj.sim.getJointForce(i)
+        #Angular/linear velocity of the joint's movement
+        veloc = sim_obj.sim.getJointVelocity(i)
+        sim_obj.initial_j_positions.append(pos)
+        sim_obj.initial_j_velocities.append(veloc)
+        sim_obj.initial_j_forces.append(force)
 
 #Class to store all the perceptions
 class perceptions ():
@@ -136,25 +166,59 @@ class perceptions ():
 
 perception = perceptions()
 
-def get_joints_preceptions():
+def move_joints():
+    if sim_obj.training_data != []:
+        for i in range(sim_obj.num_joints):
+            prev_pos = sim_obj.training_data[-1]['post_j_positions']
+            sim_obj.sim.setJointTargetPosition(sim_obj.joint_handler_ids[i], (perception.increments[i]+prev_pos[i]))
+        #After setting all the joints it moves
+        for i in range(5):
+            sim_obj.client.step()
+    else:
+        for i in range(sim_obj.num_joints):
+            sim_obj.sim.setJointTargetPosition(sim_obj.joint_handler_ids[i], (perception.increments[i]+sim_obj.initial_j_positions[i]))
+        #After setting all the joints it moves
+        for i in range(5):
+            sim_obj.client.step()
 
-    #Base perceptions
+#Generate list of random positions
+def rand_gen():
+    for i in range(sim_obj.num_joints):
+        n = ru(-10, 10) * math.pi / 180
+        perception.increments.append(n)
+
+def get_preceptions():
+    #Define previous perceptions
+    if sim_obj.training_data == []:
+        perception.prev_base_pos_x = sim_obj.initial_base_pos_x 
+        perception.prev_base_pos_y = sim_obj.initial_base_pos_y
+        perception.prev_base_pos_z = sim_obj.initial_base_pos_z
+        perception.prev_base_ori_alpha = sim_obj.initial_base_ori_alpha
+        perception.prev_base_ori_beta = sim_obj.initial_base_ori_beta
+        perception.prev_base_ori_gamma = sim_obj.initial_base_ori_gamma
+        perception.prev_j_positions = sim_obj.initial_j_positions
+        perception.prev_j_velocities = sim_obj.initial_j_velocities
+        perception.prev_j_forces = sim_obj.initial_j_forces
+    else:
+        perception.prev_base_pos_x = sim_obj.training_data[-1]['post_base_pos_x']
+        perception.prev_base_pos_y = sim_obj.training_data[-1]['post_base_pos_y']
+        perception.prev_base_pos_z = sim_obj.training_data[-1]['post_base_pos_z']
+        perception.prev_base_ori_alpha = sim_obj.training_data[-1]['post_base_ori_alpha']
+        perception.prev_base_ori_beta = sim_obj.training_data[-1]['post_base_ori_beta']
+        perception.prev_base_ori_gamma = sim_obj.training_data[-1]['post_base_ori_gamma']
+        perception.prev_j_positions = sim_obj.training_data[-1]['post_j_positions']
+        perception.prev_j_velocities = sim_obj.training_data[-1]['post_j_velocities']
+        perception.prev_j_forces = sim_obj.training_data[-1]['post_j_forces']
+
+    #Get perceptions
     base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.base, sim_obj.sim.handle_world)
     base_alpha, base_beta, base_gamma = sim_obj.sim.getObjectOrientation(obj_handler.base, sim_obj.sim.handle_world)
-    if  not sim_obj.executed:
-        perception.prev_base_pos_x = base_x
-        perception.prev_base_pos_y = base_y
-        perception.prev_base_pos_z = base_z
-        perception.prev_base_ori_alpha = base_alpha
-        perception.prev_base_ori_beta = base_beta
-        perception.prev_base_ori_gamma = base_gamma
-    else:
-        perception.post_base_pos_x = base_x
-        perception.post_base_pos_y = base_y
-        perception.post_base_pos_z = base_z
-        perception.post_base_ori_alpha = base_alpha
-        perception.post_base_ori_beta = base_beta
-        perception.post_base_ori_gamma = base_gamma
+    perception.post_base_pos_x = base_x
+    perception.post_base_pos_y = base_y
+    perception.post_base_pos_z = base_z
+    perception.post_base_ori_alpha = base_alpha
+    perception.post_base_ori_beta = base_beta
+    perception.post_base_ori_gamma = base_gamma
         
     #Joint perceptions
     for i in sim_obj.joint_handler_ids:
@@ -164,28 +228,15 @@ def get_joints_preceptions():
         force = sim_obj.sim.getJointForce(i)
         #Angular/linear velocity of the joint's movement
         veloc = sim_obj.sim.getJointVelocity(i)
-        if  not sim_obj.executed:
-            perception.prev_j_positions.append(pos)
-            perception.prev_j_velocities.append(veloc)
-            perception.prev_j_forces.append(force)
-        else:
-            perception.post_j_positions.append(pos)
-            perception.post_j_velocities.append(veloc)
-            perception.post_j_forces.append(force)
+        perception.post_j_positions.append(pos)
+        perception.post_j_velocities.append(veloc)
+        perception.post_j_forces.append(force)
 
-#Function to execute one increment in every joint
-def move_joints():
-    for i in range(sim_obj.num_joints):
-        sim_obj.sim.setJointTargetPosition(sim_obj.joint_handler_ids[i], (perception.increments[i]+perception.prev_j_positions[i]))
-    #After setting all the joints it moves
-    for i in range(5):
-        sim_obj.client.step()
-
-#Generate list of random positions
-def rand_gen():
-    for i in range(sim_obj.num_joints):
-        n = ru(-10, 10) * math.pi / 180
-        perception.increments.append(n)
+def export_pickle():    
+    #Dump data in file
+    sim_obj.file = open(os.getcwd() + r'\Morphology\pickled_training_dataset.txt', 'wb')
+    pickle.dump(sim_obj.training_data, sim_obj.file)
+    sim_obj.file.close()
 
 #Main function for multiple executions and multiple steps
 sim_obj.training_data = []
@@ -195,17 +246,16 @@ for k in range(sim_obj.sequencies):
     for j in range(sim_obj.seq_steps):
         perception = perceptions()
         perception.sequence = k
-        perception.step = j         
+        perception.step = j    
+        print("----------- Secuencia: ", perception.sequence)
+        print("----------- Paso: ", perception.step)     
         rand_gen()
-        get_joints_preceptions()
         #Execute every joint action
         move_joints()
-        sim_obj.executed = True
-        get_joints_preceptions()
-        sim_obj.executed = False
+        get_preceptions()
         sim_obj.training_data.append(vars(perception))
     sim_obj.sim.stopSimulation()
 
-
+export_pickle()
 df = pd.DataFrame(sim_obj.training_data)
-df.to_csv("data.csv", index=False)   
+df.to_csv(os.getcwd() + r'\Morphology\data.csv', index=False)
