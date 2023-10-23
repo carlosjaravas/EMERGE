@@ -1,0 +1,34 @@
+slurmstepd: info: Setting TMPDIR to /scratch/4527120. Previous errors about TMPDIR can be discarded
+squashfs/4.3 loaded
+go/1.17.8 loaded
+singularity/3.9.7 loaded
+ubuntu18.04-apps/23.04.2020 loaded
+INFO:    Converting SIF file to temporary sandbox...
+WARNING: While bind mounting '/mnt:/mnt': destination is already in the mount point list
+slurmstepd: error: *** JOB 4527120 ON ilk-190 CANCELLED AT 2023-10-18T18:55:19 DUE TO TIME LIMIT ***
+
+*****************************************************************************
+*                                                                           *
+*                    JOB EFFICIENCY REPORT (seff 4527120)                   *
+*                                                                           *
+*****************************************************************************
+
+Job ID: 4527120
+Cluster: finisterrae3
+User/Group: ulciimnv/ulc
+State: TIMEOUT (exit code 0)
+Cores: 1
+CPU Utilized: 02:29:14
+CPU Efficiency: 99.47% of 02:30:02 core-walltime
+Job Wall-clock time: 02:30:02
+Memory Utilized: 608.30 MB
+Memory Efficiency: 19.80% of 3.00 GB
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++   Memory Efficiency is too small. Please review the requested memory. ++
+ ++ It seems that you do not need that much memory so we recommend        ++
+ ++ requesting less memory in other similar jobs.                         ++
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+*****************************************************************************
+
