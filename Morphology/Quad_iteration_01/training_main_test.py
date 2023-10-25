@@ -250,7 +250,7 @@ def get_preceptions():
 
 def export():    
     #Dump data in file
-    timestr = time.strftime("_%Y_%d%m_")
+    timestr = time.strftime("_%Y_%d%m")
     sim_obj.file = open('training_dataset_' + str(port_conexion) + timestr + '.pkl', 'wb')
     pickle.dump(sim_obj.training_data, sim_obj.file)
     sim_obj.file.close()
