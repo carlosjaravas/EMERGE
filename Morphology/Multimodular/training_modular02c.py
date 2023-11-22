@@ -25,10 +25,11 @@ class sim_objects ():
         self.joint_handler_ids = []
         self.num_joints = 0
         self.obj_handler_ids = []
+        self.exact = 1/180*math.pi
         
         #Number of sequences and steps per sequence
-        self.sequencies = 20
-        self.seq_steps = 100
+        self.sequencies = 2
+        self.seq_steps = 20
 
         #Stores all the training data to be saved
         self.training_data = []
@@ -49,7 +50,7 @@ class joint_handlers_class ():
 
 class obj_handlers_class ():
     def __init__(self):
-        self.C1a = 0
+        self.p = 0
         
 
 
@@ -70,10 +71,6 @@ class perceptions ():
         self.post_pos_x = 0
         self.post_pos_y = 0
         self.post_pos_z = 0
-        #Change in positions
-        self.delta_pos_x = 0
-        self.delta_pos_y = 0
-        self.delta_pos_z = 0
 
 
 # Function that load the robot in the scene at the beggining of each evaluation.
@@ -88,7 +85,7 @@ def load_quad_class():
     handler.J1 = sim_obj.sim.getObject("/J1")
 
     #Setting obj handlers
-    obj_handler.C1a = sim_obj.sim.getObject("/C1a")
+    obj_handler.p = sim_obj.sim.getObject("/p")
  
     #Stores the different id for every handler starting with the base
     sim_obj.joint_handler_ids = list(handler.__dict__.values())
@@ -97,18 +94,37 @@ def load_quad_class():
 
     sim_obj.obj_handler_ids = list(obj_handler.__dict__.values())
 
-    sim_obj.sim.startSimulation()
+#Generate a list for random starting positions
+def set_starting_position ():
+    starting_pos = []
+    starting_angles = [0, 45, 75]
+    angle = ri(0, len(starting_angles)-1)
+    sentido = math.pow(-1,ri(0, 1))
+    for _ in sim_obj.joint_handler_ids:
+        starting_pos.append(sentido*starting_angles[angle]*math.pi/180)
+    return starting_pos
 
 
 def init_position():
+    initial_pos = set_starting_position()
+    #Set all the joints to their initial position
+    for joint_n in range(sim_obj.num_joints):
+        init_pos = initial_pos[joint_n]
+        joint = sim_obj.joint_handler_ids[joint_n]
+
+        sim_obj.sim.setJointTargetPosition(joint, init_pos)
+        sim_obj.sim.setJointPosition(joint, init_pos)
+
+    sim_obj.sim.startSimulation()
     sim_obj.client.step()
+
     #Starting initial perceptions
     sim_obj.initial_j_positions = []
     #Get initial perceptions
-    base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.C1a, sim_obj.sim.handle_world)
+    base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.p, sim_obj.sim.handle_world)
     sim_obj.initial_pos_x = base_x
-    sim_obj.initial_pos_x = base_y
-    sim_obj.initial_pos_x = base_z
+    sim_obj.initial_pos_y = base_y
+    sim_obj.initial_pos_z = base_z
     
     #Joint perceptions
     for joint_i_per in sim_obj.joint_handler_ids:
@@ -130,16 +146,72 @@ def move_joints():
     if perception.step != 0:
         for joint_num in range(sim_obj.num_joints):
             prev_pos = sim_obj.training_data[-1]['post_j_positions']
-            sim_obj.sim.setJointTargetPosition(sim_obj.joint_handler_ids[joint_num], (perception.increments[joint_num]+prev_pos[joint_num]))
-        #After setting all the joints it moves
-        for t_step in range(5):
+            joint = sim_obj.joint_handler_ids[joint_num]
+            
+            # Keeps the next position between -pi/2 and pi/2
+            target = perception.increments[joint_num] + prev_pos[joint_num]
+            if target > math.pi/2:
+                next_pos = math.pi/2
+            elif target < -math.pi/2:
+                next_pos = -math.pi/2
+            else:
+                next_pos = target
+
+            sim_obj.sim.setJointTargetPosition(joint, next_pos)
             sim_obj.client.step()
+
+        # Moves joint until it gets to the position
+            act_pos = sim_obj.sim.getJointPosition(joint)
+            counter = 0
+            difference = act_pos - next_pos
+            while abs(difference)>sim_obj.exact or counter < 5:
+                sim_obj.sim.setJointTargetPosition(joint, next_pos)
+                sim_obj.client.step()
+    
+                new_pos = sim_obj.sim.getJointPosition(joint, sim_obj.sim.handle_world)
+    
+                if round(act_pos, 4) == round(new_pos, 4):
+                    counter += 1
+                else:
+                    counter = counter
+            
+                act_pos = new_pos
+                difference = new_pos - next_pos
+    # For first step
     else:
         for joint_num in range(sim_obj.num_joints):
-            sim_obj.sim.setJointTargetPosition(sim_obj.joint_handler_ids[joint_num], (perception.increments[joint_num]+sim_obj.initial_j_positions[joint_num]))
-        #After setting all the joints it moves
-        for t_step in range(5):
+            prev_pos = sim_obj.initial_j_positions[joint_num]
+            joint = sim_obj.joint_handler_ids[joint_num]
+            
+            # Keeps the next position between -pi/2 and pi/2
+            target = perception.increments[joint_num] + prev_pos
+            if target > math.pi/2:
+                next_pos = math.pi/2
+            elif target < -math.pi/2:
+                next_pos = -math.pi/2
+            else:
+                next_pos = target
+
+            sim_obj.sim.setJointTargetPosition(joint, next_pos)
             sim_obj.client.step()
+        
+        # Moves joint until it gets to the position
+            act_pos = sim_obj.sim.getJointPosition(joint)
+            counter = 0
+            difference = act_pos - next_pos
+            while abs(difference)>sim_obj.exact or counter < 5:
+                sim_obj.sim.setJointTargetPosition(joint, next_pos)
+                sim_obj.client.step()
+    
+                new_pos = sim_obj.sim.getJointPosition(joint, sim_obj.sim.handle_world)
+    
+                if round(act_pos, 4) == round(new_pos, 4):
+                    counter += 1
+                else:
+                    counter = counter
+            
+                act_pos = new_pos
+                difference = new_pos - next_pos
 
 
 def get_preceptions():
@@ -156,13 +228,10 @@ def get_preceptions():
         perception.prev_j_positions = sim_obj.initial_j_positions
 
     #Get perceptions
-    base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.C1a, sim_obj.sim.handle_world)
+    base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.p, sim_obj.sim.handle_world)
     perception.post_pos_x = base_x
     perception.post_pos_y = base_y
     perception.post_pos_z = base_z
-    perception.delta_pos_x = perception.post_pos_x - perception.prev_pos_x
-    perception.delta_pos_y = perception.post_pos_y - perception.prev_pos_y
-    perception.delta_pos_z = perception.post_pos_z - perception.prev_pos_z
         
     #Joint perceptions
     for joint_per in sim_obj.joint_handler_ids:
@@ -175,12 +244,14 @@ def export():
     #Dump data in file
     path = "C:\\Users\\carlo\\OneDrive\\Imágenes\\Documentos\\GitHub\\EMERGE\\Morphology\\Multimodular\\training_data\\"
     timestr = time.strftime("_%Y_%d%m")
-    sim_obj.file = open(path + 'training_dataset_' + scene + "_" + str(port_conexion) + timestr + '.pkl', 'wb')
-    pickle.dump(sim_obj.training_data, sim_obj.file)
-    sim_obj.file.close()
     if not cluster:
+        sim_obj.file = open(path + 'training_dataset_' + scene + "_" + str(port_conexion) + timestr + '.pkl', 'wb')
         df = pd.DataFrame(sim_obj.training_data)
         df.to_csv(path + 'data_' + scene + "_" + str(port_conexion) + timestr + '.csv', index=False)
+    else:    
+        sim_obj.file = open('training_dataset_' + scene + "_" + str(port_conexion) + timestr + '.pkl', 'wb')
+    pickle.dump(sim_obj.training_data, sim_obj.file)
+    sim_obj.file.close()
 
 
 #Main function for multiple executions and multiple steps

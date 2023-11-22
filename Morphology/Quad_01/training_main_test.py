@@ -160,8 +160,8 @@ def init_position():
     base_x, base_y, base_z = sim_obj.sim.getObjectPosition(obj_handler.base, sim_obj.sim.handle_world)
     base_alpha, base_beta, base_gamma = sim_obj.sim.getObjectOrientation(obj_handler.base, sim_obj.sim.handle_world)
     sim_obj.initial_base_pos_x = base_x
-    sim_obj.initial_base_pos_x = base_y
-    sim_obj.initial_base_pos_x = base_z
+    sim_obj.initial_base_pos_y = base_y
+    sim_obj.initial_base_pos_z = base_z
     sim_obj.initial_base_ori_alpha = base_alpha
     sim_obj.initial_base_ori_beta = base_beta
     sim_obj.initial_base_ori_gamma = base_gamma    
