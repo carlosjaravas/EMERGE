@@ -15,7 +15,7 @@ class JointHandlerSim():
         self.sim = sim # sim = self.client.getObject('sim')
         
         # Method needed ariables
-        self.exact_rad = 1/180*math.pi
+        self.exact_rad = 1.0/180.0*math.pi
         self.joint_ids = []
         self.num_joints = 0
         self.obj_ids = []

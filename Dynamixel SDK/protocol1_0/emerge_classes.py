@@ -73,7 +73,7 @@ class EMERGE_setup():
             self.LOCK_EEPOM = 			47  #1 byte
             self.PUNCH = 				48  #2 byte
     
-    # Control table addresses
+    # Control table EEPROM and RAM addresses
     class CTRL_ADDR():
         def __init__(self):
             self.MODEL_NUMBER = 		0   #2 byte
@@ -148,7 +148,7 @@ class EMERGE_setup():
             self.ALARM_LED =            1   #byte
             self.SHUTDOWN =             1   #byte
 
-# Control table bytes
+# Control table EEPROM and RAM bytes
     class CTRL_BYTES():
         def __init__(self):
             self.MODEL_NUMBER =         2   #byte

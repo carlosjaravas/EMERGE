@@ -18,9 +18,13 @@ class JointHandlerEMERGE():
         self.packetHandler = packetHandler # Get methods and members of Protocol1PacketHandler: PacketHandler(PROTOCOL_VERSION)
         
         # Robot depending values
-        self.joint_min_position = 205
-        self.joint_max_position = 819
-        self.exact_rad = 1/180*math.pi
+        self.joint_min_position = 203
+        self.joint_max_position = 821
+        self.joint_min_velocity = 123
+        self.joint_max_velocity = 256
+
+        self.exact_rad =1.0/180.0*math.pi
+        self.increment = 7.5/180.0*math.pi
         self.max_num_joint = 12        
         
         # Method needed variables
@@ -29,17 +33,22 @@ class JointHandlerEMERGE():
     
     # Gives a the position of the motor as an int
     def rad2AX(self, rad):
-        offset = 15/18*math.pi
-        rel = 512/offset
+        offset = 15.0/18.0*math.pi
+        rel = 512.0/offset
         AX_pos = (rad + offset)*rel
         return round(AX_pos)
     
     # Gives a the position of the motor in rad
     def AX2rad(self, AX_pos):
-        offset = 15/18*math.pi
-        rel = 512/offset
+        offset = 15.0/18.0*math.pi
+        rel = 512.0/offset
         rad = AX_pos/rel - offset
         return rad
+    
+    # Gives the velocity in dps --------------------- Needs validation
+    def AX2dps(self, AX_speed):
+        dps = float(AX_speed)/0.666
+        return dps
 
     def enableJointMovement(self, joint):
         dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, joint, RAM_ADDR.TORQUE_ENABLE, 1)
@@ -104,6 +113,77 @@ class JointHandlerEMERGE():
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
             pass
+    
+    # Sets up the joint velocity
+    def setJointTargetVelocity(self, joint, target_speed): # 0 and 1023 = max, 1 = min
+        dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler, joint, RAM_ADDR.MOVING_SPEED, target_speed)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+        else:
+            pass
+        
+    # Gets the joint present velocity in dps --------------------- Needs validation
+    def getJointVelocity(self, joint):
+        dxl_present_speed, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler, joint, RAM_ADDR.PRESENT_SPEED)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+        else:
+            pass
+        if dxl_present_speed > 1023:
+            dxl_present_speed = -(dxl_present_speed - 1024)
+        velocity = self.AX2dps(dxl_present_speed)
+        return dxl_present_speed
+
+    # Velocity profiles
+    def trapezoidalVelocityProfile(self, progress):
+        min_velocity = self.joint_min_velocity
+        max_velocity = self.joint_max_velocity
+        p1 = 0.3
+        p2 = 0.7
+        p3 = 1
+        # Remaining percentage to goal
+        if progress <= p1:
+            x = progress
+            m = (max_velocity-min_velocity)/p1
+            b = min_velocity
+            velocity = x * m + b
+        elif p1 < progress and progress < p2:
+            velocity = max_velocity
+        else:
+            x = progress
+            m = (min_velocity-max_velocity)/(p3-p2)
+            b = min_velocity - p3* m
+            velocity = x * m + b
+        return round(velocity)
+
+    def trapezoidalModVelocityProfile(self, progress):
+        min_velocity = self.joint_min_velocity
+        max_velocity = self.joint_max_velocity
+        max_perc = 4/5
+        p1 = 0.3
+        p2 = 0.7
+        p3 = 1
+        # Remaining percentage to goal
+        if progress <= p1:
+            x = progress
+            m = (max_velocity-min_velocity)/p1
+            b = min_velocity
+            velocity = x * m + b
+        elif p1 < progress and progress < p2:
+            x = progress
+            m = ((max_perc*max_velocity)-max_velocity)/(p2-p1)
+            b = max_velocity - p1* m
+            velocity = x * m + b
+        else:
+            x = progress
+            m = (min_velocity-(max_perc*max_velocity))/(p3-p2)
+            b = min_velocity - p3* m
+            velocity = x * m + b
+        return round(velocity)
 
     # Moves the module until it gets to a final position in a range    
     def setJointTargetPosition(self, joint, target_position_rad):
@@ -112,10 +192,21 @@ class JointHandlerEMERGE():
         act_pos = self.getJointPosition(joint)
         counter = 0
         diff = act_pos - target_position_rad
+        error = abs(diff)
 
-        while abs(diff) > self.exact_rad or counter < 5:
+        while abs(error) > self.exact_rad or counter < 5:
+
+            # Adjusts velocity of the motion inversely proportional to the distance to the target position
+            if abs(diff) > self.increment:
+                dist_percent = abs(error/diff)
+                progress = 1 - dist_percent
+                velocity = self.trapezoidalVelocityProfile(progress)               
+            else: 
+                velocity = self.joint_min_velocity
+
+            self.setJointTargetVelocity(joint,velocity)
             self.setJointAngularPosition(joint, target_position_rad)
-
+            
             new_pos = self.getJointPosition(joint)
 
             if round(act_pos, 3) == round(new_pos, 3):
@@ -124,11 +215,11 @@ class JointHandlerEMERGE():
                 counter = counter
         
             act_pos = new_pos
-            diff = new_pos - target_position_rad
+            error = new_pos - target_position_rad
 
     # Moves to initial position
-    def setJointInitialPosition(self, joint, initial_position_rad):
-        self.setJointTargetPosition(self, joint, initial_position_rad)
+    def setJointInitialPosition(self, joint, initial_position_rad = 0):
+        self.setJointTargetPosition(joint, initial_position_rad)
         
     # Pings a Dynamixel using its ID to get the model number
     def getJointStatus(self, joint): 
@@ -180,6 +271,8 @@ class JointHandlerEMERGE():
             self.setJointMinTargetPosition(joint)
             self.setJointMaxTargetPosition(joint)
             self.enableJointMovement(joint)
+            self.setJointTargetVelocity(joint,self.joint_min_velocity)
+            self.setJointInitialPosition(joint)
 
     def unloadEMERGE(self):
         for joint in self.joint_ids:
