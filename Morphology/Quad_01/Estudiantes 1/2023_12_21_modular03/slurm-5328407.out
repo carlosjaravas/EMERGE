@@ -1,0 +1,33 @@
+slurmstepd: info: Setting TMPDIR to /scratch/5328407. Previous errors about TMPDIR can be discarded
+squashfs/4.3 loaded
+go/1.17.8 loaded
+singularity/3.9.7 loaded
+INFO:    Converting SIF file to temporary sandbox...
+Base Port: 20006
+INFO:    Cleaning up image...
+
+*****************************************************************************
+*                                                                           *
+*                    JOB EFFICIENCY REPORT (seff 5328407)                   *
+*                                                                           *
+*****************************************************************************
+
+Job ID: 5328407
+Cluster: finisterrae3
+User/Group: ulciimnv/ulc
+State: COMPLETED (exit code 0)
+Cores: 1
+CPU Utilized: 00:04:57
+CPU Efficiency: 73.70% of 00:06:43 core-walltime
+Job Wall-clock time: 00:06:43
+Memory Utilized: 527.71 MB
+Memory Efficiency: 17.18% of 3.00 GB
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++   Memory Efficiency is too small. Please review the requested memory. ++
+ ++ It seems that you do not need that much memory so we recommend        ++
+ ++ requesting less memory in other similar jobs.                         ++
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+*****************************************************************************
+

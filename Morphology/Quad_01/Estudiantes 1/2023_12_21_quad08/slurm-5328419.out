@@ -1,0 +1,6 @@
+slurmstepd: info: Setting TMPDIR to /scratch/5328419. Previous errors about TMPDIR can be discarded
+squashfs/4.3 loaded
+go/1.17.8 loaded
+singularity/3.9.7 loaded
+INFO:    Converting SIF file to temporary sandbox...
+slurmstepd: error: *** JOB 5328419 ON ilk-241 CANCELLED AT 2023-12-21T13:53:49 DUE TO TIME LIMIT ***

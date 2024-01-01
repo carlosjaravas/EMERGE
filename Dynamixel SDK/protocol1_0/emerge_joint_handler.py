@@ -13,10 +13,11 @@ RAM_BYTES = MODULE.RAM_BYTES()
 EEPROM_BYTES = MODULE.EEPROM_BYTES()
 
 class JointHandlerEMERGE():
-    def __init__(self, portHandler, packetHandler):
+    def __init__(self, portHandler, packetHandler, sensorHandler):
         self.portHandler = portHandler # Get methods and members of PortHandler: PortHandler(DEVICENAME)
         self.packetHandler = packetHandler # Get methods and members of Protocol1PacketHandler: PacketHandler(PROTOCOL_VERSION)
-        
+        self.sensorHandler = sensorHandler # Get methods and members of SensorHandler to read the sensors via Arduino
+
         # Robot depending values
         self.joint_min_position = 203
         self.joint_max_position = 821
@@ -29,7 +30,12 @@ class JointHandlerEMERGE():
         
         # Method needed variables
         self.joint_ids = []
-        self.num_joints = 0       
+        self.num_joints = 0 
+
+        # Orientation control
+        self.alpha = 0
+        self.beta = 0
+        self.gamma = 0
     
     # Gives a the position of the motor as an int
     def rad2AX(self, rad):
@@ -246,6 +252,19 @@ class JointHandlerEMERGE():
             if isJoint:
                 self.joint_ids.append(joint)
         self.num_joints = len(self.joint_ids)
+
+
+    # -------------------------------- SENSORS --------------------------------
+    def getHeight(self):
+        height = self.sensorHandler.getDistance()
+        return height
+    
+    def getAngularVelocity(self):
+        dps = self.sensorHandler.getDPS()
+        rps = dps*math.pi/180
+        return rps
+
+    
     
     # Connects to the EMERGE Modules
     def connectEMERGE(self):

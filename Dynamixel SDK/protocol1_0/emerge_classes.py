@@ -34,6 +34,9 @@ class EMERGE_setup():
         self.BAUDRATE = 1000000        #Dynamixel default baudrate
         self.DEVICENAME = 'COM5'       #Check in device manager
 
+        self.SENSOR_PORT = 'COM6'
+        self.SENSOR_BAUD = 250000
+
     # Control table addresses
     class EEPROM_ADDR():
         def __init__(self):

@@ -5,7 +5,7 @@
 from emerge_joint_handler import *
 from sim_joint_handler import *
 
-def JointHandler(is_sim, portH_client, packetH_sim): #is_sim, portH_client, packetH_sim
+def JointHandler(is_sim, portH_client, packetH_sim, sensorH = 0): #is_sim, portH_client, packetH_sim
     if is_sim:
         client = portH_client
         sim = packetH_sim
@@ -13,4 +13,5 @@ def JointHandler(is_sim, portH_client, packetH_sim): #is_sim, portH_client, pack
     else:
         portHandler = portH_client
         packetHandler = packetH_sim
-        return JointHandlerEMERGE(portHandler, packetHandler)
+        sensorHandler = sensorH
+        return JointHandlerEMERGE(portHandler, packetHandler, sensorHandler)

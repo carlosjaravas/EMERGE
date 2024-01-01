@@ -5,7 +5,9 @@ def join_datasets(raw_data_path, scene, modules):
     path = raw_data_path + scene
     file_list = os.listdir(path)
     # List of training data files
-    scene_files_list = [item for item in file_list if scene in item and "pkl" in item]
+    #scene_files_list = [item for item in file_list if scene in item and "pkl" in item]
+    # Changed to work for an specific moment
+    scene_files_list = [item for item in file_list if scene[:10] in item and "pkl" in item]
     print("---- Joining", len(scene_files_list), scene, "datasets ----")
 
     # Loads initial data
@@ -21,7 +23,7 @@ def join_datasets(raw_data_path, scene, modules):
             
     # Dumps the data in a new file
     timestr = time.strftime("_%Y_%d_%m_%H%M")
-    new_file_path = "C:\\Users\\carlo\\OneDrive\\Imágenes\\Documentos\\GitHub\\EMERGE\\Morphology\\" + modules + "\\training_data\\" + timestr[1:-5]
+    new_file_path = "C:\\Users\\carlo\\OneDrive\\Imágenes\\Documentos\\GitHub\\EMERGE\\Morphology\\" + modules + "\\training\\training_data\\" + timestr[1:-5]
     if not os.path.exists(new_file_path):
         os.mkdir(new_file_path)
     new_file_name = "joined_training_dataset_" + scene + timestr + '.pkl'
@@ -31,12 +33,12 @@ def join_datasets(raw_data_path, scene, modules):
 
 def main():
     # Path were all the files are stored just before scene name
-    raw_data_path = "C:\\Users\\carlo\\OneDrive - Estudiantes ITCR\\U\\TFG España\\Codigo\\Datos de entrenamiento\\2023_11_16_"
+    raw_data_path = "C:\\Users\\carlo\\OneDrive - Estudiantes ITCR\\U\\TFG España\\Codigo\\Datos de entrenamiento\\2023_12_22_"
     modules = "Multimodular"
     if "Multimodular" in modules:
         #scene_list = ["modular02a","modular02b","modular02c","modular03"]
         #scene_list = ["modular02b","modular02","modular03"]
-        scene_list = ["modular03"]
+        scene_list = ["modular03_7","modular03_45","modular03_90"]
     elif "Quad" in modules:
         scene_list = ["modular03"]
     else:

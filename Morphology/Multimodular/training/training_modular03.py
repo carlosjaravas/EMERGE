@@ -25,11 +25,11 @@ class sim_objects ():
         self.joint_handler_ids = []
         self.num_joints = 0
         self.obj_handler_ids = []
-        self.exact = 1/180*math.pi
+        self.exact = 1.0/180*math.pi
         
         #Number of sequences and steps per sequence
-        self.sequencies = 100
-        self.seq_steps = 40
+        self.sequencies = 200
+        self.seq_steps = 200
 
         #Stores all the training data to be saved
         self.training_data = []
@@ -140,7 +140,7 @@ def init_position():
 #Generate list of random positions
 def rand_gen():
     for num in range(sim_obj.num_joints):
-        n = ru(-90, 90) * math.pi / 180
+        n = ru(-7.5, 7.5) * math.pi / 180
         perception.increments.append(n)
 
 
@@ -167,7 +167,7 @@ def move_joints():
             act_pos = sim_obj.sim.getJointPosition(joint)
             counter = 0
             difference = act_pos - next_pos
-            while abs(difference)>sim_obj.exact or counter < 5:
+            while abs(difference)>sim_obj.exact and counter < 5:
                 sim_obj.sim.setJointTargetPosition(joint, next_pos)
                 sim_obj.client.step()
     
@@ -202,7 +202,7 @@ def move_joints():
             act_pos = sim_obj.sim.getJointPosition(joint)
             counter = 0
             difference = act_pos - next_pos
-            while abs(difference)>sim_obj.exact or counter < 5:
+            while abs(difference)>sim_obj.exact and counter < 5:
                 sim_obj.sim.setJointTargetPosition(joint, next_pos)
                 sim_obj.client.step()
     
@@ -272,7 +272,7 @@ def main():
     for seq in range(sim_obj.sequencies):
         load_quad_class()
         init_position()
-        print('seq:', seq)
+        #print('seq:', seq)
         for seq_step in range(sim_obj.seq_steps):
             perception = perceptions()
             perception.sequence = seq
@@ -283,7 +283,7 @@ def main():
             get_preceptions()
             sim_obj.training_data.append(vars(perception))
         sim_obj.sim.stopSimulation()    
-        export()
+        #export()
     
 
 if __name__ == "__main__":
