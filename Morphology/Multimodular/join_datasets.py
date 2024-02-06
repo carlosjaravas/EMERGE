@@ -33,12 +33,12 @@ def join_datasets(raw_data_path, scene, modules):
 
 def main():
     # Path were all the files are stored just before scene name
-    raw_data_path = "C:\\Users\\carlo\\OneDrive - Estudiantes ITCR\\U\\TFG España\\Codigo\\Datos de entrenamiento\\2023_12_22_"
+    raw_data_path = "C:\\Users\\carlo\\OneDrive - Estudiantes ITCR\\U\\TFG España\\Codigo\\Datos de entrenamiento\\2024_01_23_"
     modules = "Multimodular"
     if "Multimodular" in modules:
         #scene_list = ["modular02a","modular02b","modular02c","modular03"]
         #scene_list = ["modular02b","modular02","modular03"]
-        scene_list = ["modular03_7","modular03_45","modular03_90"]
+        scene_list = ["modular03a","modular03b","modular03c","modular03d","modular03e"]
     elif "Quad" in modules:
         scene_list = ["modular03"]
     else:

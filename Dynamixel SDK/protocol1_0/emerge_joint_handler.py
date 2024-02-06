@@ -21,8 +21,8 @@ class JointHandlerEMERGE():
         # Robot depending values
         self.joint_min_position = 203
         self.joint_max_position = 821
-        self.joint_min_velocity = 123
-        self.joint_max_velocity = 256
+        self.joint_min_velocity = 62
+        self.joint_max_velocity = 123
 
         self.exact_rad =1.0/180.0*math.pi
         self.increment = 7.5/180.0*math.pi
@@ -129,20 +129,6 @@ class JointHandlerEMERGE():
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
             pass
-        
-    # Gets the joint present velocity in dps --------------------- Needs validation
-    def getJointVelocity(self, joint):
-        dxl_present_speed, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler, joint, RAM_ADDR.PRESENT_SPEED)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
-        else:
-            pass
-        if dxl_present_speed > 1023:
-            dxl_present_speed = -(dxl_present_speed - 1024)
-        velocity = self.AX2dps(dxl_present_speed)
-        return dxl_present_speed
 
     # Velocity profiles
     def trapezoidalVelocityProfile(self, progress):
@@ -166,6 +152,7 @@ class JointHandlerEMERGE():
             velocity = x * m + b
         return round(velocity)
 
+    # Instead of keeping max velocity, once it reaches the max velocity it starts to slow down gradually between 30% and 70%
     def trapezoidalModVelocityProfile(self, progress):
         min_velocity = self.joint_min_velocity
         max_velocity = self.joint_max_velocity
@@ -255,14 +242,22 @@ class JointHandlerEMERGE():
 
 
     # -------------------------------- SENSORS --------------------------------
+    def connectArduino(self):
+        self.sensorHandler.connectArduino()
+    
+    def disconnectArduino(self):
+        self.sensorHandler.disconnectArduino()
+    
     def getHeight(self):
         height = self.sensorHandler.getDistance()
         return height
     
     def getAngularVelocity(self):
-        dps = self.sensorHandler.getDPS()
-        rps = dps*math.pi/180
-        return rps
+        xdps,ydps,zdps = self.sensorHandler.getDPS()
+        xrps = xdps*math.pi/180
+        yrps = ydps*math.pi/180
+        zrps = zdps*math.pi/180
+        return xrps, yrps, zrps
 
     
     

@@ -2,7 +2,7 @@ const int pinIR = A0;
 const float VCC = 5.0;
 
 void setup() {
-  Serial.begin(9600);  // Inicia la comunicación serial a 9600 baudios
+  Serial.begin(250000);  // Inicia la comunicación serial a 9600 baudios
 }
 
 void loop() {
